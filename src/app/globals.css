@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@import "flag-icons/css/flag-icons.min.css";
+
+@theme {
+  --color-primary: #2875fb;
+  --color-deep: #1e3fb2;
+  --color-navy: #030e50;
+  --color-soft: #c3d7fc;
+  --color-canvas: #f7f9ff;
+
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-soft: 0 10px 40px -12px rgb(30 63 178 / 0.18);
+  --shadow-lift: 0 28px 60px -20px rgb(30 63 178 / 0.35);
+
+  --animate-twinkle: twinkle 3.6s ease-in-out infinite;
+  --animate-drift: drift 9s ease-in-out infinite;
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.85) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.1) rotate(12deg); }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -14px, 0); }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+}
+
+section[id],
+footer[id] {
+  scroll-margin-top: 5rem;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
