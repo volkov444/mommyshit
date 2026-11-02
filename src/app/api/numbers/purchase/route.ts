@@ -36,9 +36,14 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, message: "Layanan beli nomor sedang tidak tersedia. Coba lagi nanti." });
   }
 
-  const [{ data: service }, { data: country }, { data: tier }] = await Promise.all([
+  const [{ data: service }, { data: country }, { data: tierRows }] = await Promise.all([
     admin.from("services").select("id, name").eq("id", serviceId).maybeSingle(),
     admin.from("countries").select("code, name, flag").eq("code", countryCode).maybeSingle(),
+    // Catalog imports can leave more than one price_tiers row for the same
+    // service+country rounding to the same sell_price (the supplier's cost
+    // drifted slightly between import runs, so the importer inserted a new
+    // row instead of updating the existing one) — order by stock so the
+    // best-stocked duplicate wins instead of erroring on an ambiguous match.
     admin
       .from("price_tiers")
       .select("supplier_price, sell_price, supplier_service_code")
@@ -48,8 +53,10 @@ export async function POST(request: Request) {
       .gt("stock", 0)
       .gte("sell_price", price - 0.0001)
       .lte("sell_price", price + 0.0001)
-      .maybeSingle(),
+      .order("stock", { ascending: false })
+      .limit(1),
   ]);
+  const tier = tierRows?.[0];
 
   if (!service || !country || !tier) {
     return Response.json({ ok: false, message: "Harga sudah berubah — silakan pilih ulang layanan/negara." });
