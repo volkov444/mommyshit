@@ -6,6 +6,7 @@ import { HelpCircle, LogOut } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/cn";
 import { dashboardNav } from "@/lib/dashboard/nav";
+import { logout } from "@/lib/auth";
 import { useToast } from "./ToastProvider";
 
 export function Sidebar() {
@@ -13,9 +14,10 @@ export function Sidebar() {
   const router = useRouter();
   const toast = useToast();
 
-  function handleLogout() {
+  async function handleLogout() {
+    await logout();
     toast("Signed out. See you soon!", "success");
-    router.push("/login");
+    router.replace("/login");
   }
 
   return (

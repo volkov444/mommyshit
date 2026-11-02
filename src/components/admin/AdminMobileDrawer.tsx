@@ -7,6 +7,7 @@ import { LifeBuoy, LogOut, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/cn";
 import { adminNav } from "@/lib/admin/nav";
+import { logout } from "@/lib/auth";
 import { useToast } from "@/components/dashboard/ToastProvider";
 
 type Props = {
@@ -22,10 +23,11 @@ export function AdminMobileDrawer({ open, onClose }: Props) {
   const router = useRouter();
   const toast = useToast();
 
-  function handleLogout() {
+  async function handleLogout() {
     onClose();
+    await logout();
     toast("Berhasil keluar. Sampai jumpa lagi!", "success");
-    router.push("/login");
+    router.replace("/login");
   }
 
   return (

@@ -16,6 +16,7 @@ import { useToast } from "@/components/dashboard/ToastProvider";
 import { useUser } from "@/components/dashboard/UserProvider";
 import { getOverviewStats } from "@/lib/dashboard/api";
 import { formatCurrency } from "@/lib/format";
+import { logout } from "@/lib/auth";
 
 type SheetKey = "edit" | "password" | "language" | "invite" | "cs" | "help" | null;
 
@@ -38,9 +39,10 @@ export function ProfileView() {
     getOverviewStats().then(setStats);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    await logout();
     toast("Signed out. See you soon!", "success");
-    router.push("/login");
+    router.replace("/login");
   }
 
   function close() {

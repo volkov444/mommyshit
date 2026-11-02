@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ToastProvider } from "@/components/dashboard/ToastProvider";
-import { getSession } from "@/lib/admin/session";
+import { completeAuthSession, getActiveAuthSession } from "@/lib/auth";
 import { getUserById } from "@/lib/admin/usersStore";
 import type { User } from "@/lib/dashboard/types";
 import { adminNav } from "@/lib/admin/nav";
@@ -25,22 +25,42 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [adminUser, setAdminUser] = useState<User | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    const session = getSession();
-    if (session.role !== "admin") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of an external store (localStorage demo session) on mount, not a render-triggered sync
+  // getSession() trusts a local demo-session flag that's never cleared on
+  // logout and falls back to a default non-admin user when absent — fine
+  // for telling apart "admin" vs "regular user" cosmetically, but it never
+  // actually confirms a real Supabase session is still alive. Checking the
+  // real session here (and resyncing the local flag from it) means a
+  // logged-out visitor — or anyone whose Supabase session has expired —
+  // correctly lands on "unauthorized" instead of a stale admin view.
+  const checkAuth = useCallback(async () => {
+    const result = await getActiveAuthSession();
+    if (!result?.ok || result.session.role !== "admin") {
       setAuthState("unauthorized");
       return;
     }
-    getUserById(session.userId).then((user) => {
-      if (user) {
-        setAdminUser(user);
-        setAuthState("authorized");
-      } else {
-        setAuthState("unauthorized");
-      }
-    });
+    completeAuthSession(result.session);
+    const user = await getUserById(result.session.userId);
+    if (user) {
+      setAdminUser(user);
+      setAuthState("authorized");
+    } else {
+      setAuthState("unauthorized");
+    }
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time check of the real Supabase session on mount, not a render-triggered sync
+    checkAuth();
+
+    // See the matching comment in UserProvider.tsx — a back/forward-cache
+    // restore can repaint a stale authorized view without rerunning this
+    // effect, so re-validate the real session when that happens.
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) checkAuth();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [checkAuth]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- closing the drawer on route change, not a render-triggered sync

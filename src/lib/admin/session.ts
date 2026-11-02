@@ -39,3 +39,16 @@ export function getSession(): Session {
 export function setSession(session: Session): void {
   writeStore(session);
 }
+
+// Called on real logout (see logout() in src/lib/auth.ts) — removes the flag
+// entirely rather than writing the default-guest fallback, so the very next
+// getSession() read (e.g. a stray component still mounted during the
+// redirect) doesn't quietly resurrect a "logged in" state.
+export function clearSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // storage unavailable — nothing to clear
+  }
+}

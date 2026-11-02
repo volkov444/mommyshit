@@ -6,6 +6,7 @@ import { LifeBuoy, LogOut } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/cn";
 import { adminNav } from "@/lib/admin/nav";
+import { logout } from "@/lib/auth";
 import { useToast } from "@/components/dashboard/ToastProvider";
 
 export function AdminSidebar() {
@@ -13,9 +14,10 @@ export function AdminSidebar() {
   const router = useRouter();
   const toast = useToast();
 
-  function handleLogout() {
+  async function handleLogout() {
+    await logout();
     toast("Berhasil keluar. Sampai jumpa lagi!", "success");
-    router.push("/login");
+    router.replace("/login");
   }
 
   return (

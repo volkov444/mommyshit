@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HomeAuthRedirect } from "@/components/HomeAuthRedirect";
 import { AuthShell } from "./AuthShell";
 import { AuthCard } from "./AuthCard";
 import { AuthField } from "./AuthField";
@@ -88,7 +89,9 @@ export function RegisterView() {
   }
 
   return (
-    <AuthShell
+    <>
+      <HomeAuthRedirect />
+      <AuthShell
       mascot="happy"
       asideTitle="Simple. Secure. Bluffy."
       asideText="Everything you need to manage virtual numbers, in one simple place."
@@ -205,6 +208,7 @@ export function RegisterView() {
           </Link>
         </p>
       </AuthCard>
-    </AuthShell>
+      </AuthShell>
+    </>
   );
 }

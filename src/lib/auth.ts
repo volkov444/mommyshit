@@ -7,7 +7,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "./supabase/client";
-import { setSession } from "./admin/session";
+import { clearSession, setSession } from "./admin/session";
 
 export type Role = "user" | "admin";
 export type AuthSession = { userId: string; name: string; email: string; role: Role; referralCode: string };
@@ -137,4 +137,19 @@ export async function register(input: { name: string; email: string; password: s
 // session so /dashboard and /admin's session-gated reads work right away.
 export function completeAuthSession(session: AuthSession): void {
   setSession({ userId: session.userId, role: session.role, name: session.name });
+}
+
+// The one real sign-out path. Every "Logout" button across the app (user
+// dashboard and admin) must call this — it's the only place that actually
+// invalidates the Supabase session; previously every logout button just
+// toasted and navigated to /login without ever calling supabase.auth
+// .signOut(), so the real session (and the local admin/session.ts flag)
+// stayed alive and anything checking auth state kept treating the user as
+// still logged in.
+export async function logout(): Promise<void> {
+  const conn = connectSupabase();
+  if (conn.ok) {
+    await conn.client.auth.signOut();
+  }
+  clearSession();
 }

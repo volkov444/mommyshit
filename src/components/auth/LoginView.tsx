@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HomeAuthRedirect } from "@/components/HomeAuthRedirect";
 import { AuthShell } from "./AuthShell";
 import { AuthCard } from "./AuthCard";
 import { AuthField } from "./AuthField";
@@ -69,7 +70,9 @@ export function LoginView() {
   }
 
   return (
-    <AuthShell
+    <>
+      <HomeAuthRedirect />
+      <AuthShell
       mascot="wave"
       asideTitle="Simple. Secure. Bluffy."
       asideText="Everything you need to manage virtual numbers, in one simple place."
@@ -161,6 +164,7 @@ export function LoginView() {
         </p>
 
       </AuthCard>
-    </AuthShell>
+      </AuthShell>
+    </>
   );
 }

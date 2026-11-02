@@ -8,6 +8,7 @@ import { Bell, LogOut, UserCircle, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatCurrency, formatRelativeTime } from "@/lib/format";
 import { getRecentTransactions } from "@/lib/dashboard/api";
+import { logout } from "@/lib/auth";
 import { useUser } from "./UserProvider";
 import { useToast } from "./ToastProvider";
 import { Skeleton } from "./Skeleton";
@@ -37,9 +38,10 @@ export function Topbar() {
     getRecentTransactions(5).then(setNotifications);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    await logout();
     toast("Signed out. See you soon!", "success");
-    router.push("/login");
+    router.replace("/login");
   }
 
   const initial = user?.name.charAt(0).toUpperCase() ?? "?";

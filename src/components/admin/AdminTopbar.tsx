@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, LogOut, Menu, Search, UserCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { logout } from "@/lib/auth";
 import { useToast } from "@/components/dashboard/ToastProvider";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { getUsers } from "@/lib/admin/usersStore";
@@ -47,9 +48,10 @@ export function AdminTopbar({ title, adminUser, onOpenMenu }: Props) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    await logout();
     toast("Berhasil keluar. Sampai jumpa lagi!", "success");
-    router.push("/login");
+    router.replace("/login");
   }
 
   // Global search across the shared admin stores.
