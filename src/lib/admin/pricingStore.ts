@@ -133,6 +133,21 @@ export async function updatePriceTier(id: string, patch: Partial<Omit<AdminPrice
   return fromRow(data);
 }
 
+// Two genuinely distinct supplier price points (VAK-SMS's "available"
+// stock buckets) can still round to the same sell price after markup —
+// showing a buyer two "options" at an identical price is just confusing,
+// with no information in it (see CountryAccordionItem). Nudge a newly
+// inserted tier up a cent at a time until it's distinct from every other
+// active tier already in its service+country group. Works in integer
+// cents to avoid float-rounding false negatives/positives.
+function uniqueSellPrice(sellPrice: number, group: AdminPriceTier[]): number {
+  if (sellPrice <= 0) return sellPrice;
+  const taken = new Set(group.filter((t) => t.active && t.sellPrice > 0).map((t) => Math.round(t.sellPrice * 100)));
+  let cents = Math.round(sellPrice * 100);
+  while (taken.has(cents)) cents += 1;
+  return cents / 100;
+}
+
 // Batch upsert for a supplier catalogue import — one insert call and one
 // upsert call total (plus one activity log entry) for the whole batch,
 // which can be thousands of tiers across every service's price points,
@@ -167,7 +182,8 @@ export async function bulkUpsertPriceTiers(
     } else {
       counter++;
       const id = `pt_${Date.now().toString(36)}_${counter}`;
-      const row: PriceTierRow = { id, ...toRow(entry) };
+      const sellPrice = uniqueSellPrice(entry.sellPrice, candidates);
+      const row: PriceTierRow = { id, ...toRow({ ...entry, sellPrice }) };
       toInsert.push(row);
       candidates.push(fromRow(row));
       byKey.set(key, candidates);
