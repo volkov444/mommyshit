@@ -66,6 +66,12 @@ export async function vaksmsGet(base: string, path: string, timeoutMs = 10000): 
 // scraped) — these try every plausible key name seen across VAK-SMS client
 // wrappers rather than assuming one, so a differently-shaped real response
 // still gets picked up instead of silently failing.
+export function extractBalance(data: unknown): number | null {
+  const rec = asRecord(data);
+  if (!rec) return null;
+  return typeof rec.balance === "number" ? rec.balance : null;
+}
+
 export function extractPhoneNumber(data: unknown): string | null {
   const rec = asRecord(data);
   if (!rec) return null;

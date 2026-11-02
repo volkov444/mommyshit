@@ -7,7 +7,16 @@
 
 import { extractBearerToken } from "@/lib/supabase/authenticateRequest";
 import { getSupabaseServerClient, getSupabaseUserClient } from "@/lib/supabase/server";
-import { candidateBases, extractActivationId, extractPhoneNumber, extractVakSmsError, vaksmsGet } from "@/lib/admin/vaksmsClient";
+import { candidateBases, extractActivationId, extractBalance, extractPhoneNumber, extractVakSmsError, vaksmsGet } from "@/lib/admin/vaksmsClient";
+
+async function getVakSmsBalance(apiUrl: string, apiKey: string): Promise<number | null> {
+  for (const base of candidateBases(apiUrl)) {
+    const data = await vaksmsGet(base, `/api/getBalance?apiKey=${encodeURIComponent(apiKey)}`);
+    const balance = extractBalance(data);
+    if (balance !== null) return balance;
+  }
+  return null;
+}
 
 export async function POST(request: Request) {
   const token = extractBearerToken(request);
@@ -66,6 +75,8 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, message: "Nomor untuk layanan/negara ini sedang tidak tersedia. Coba lagi nanti." });
   }
 
+  const balanceBefore = await getVakSmsBalance(apiUrl, apiKey);
+
   let phoneNumber: string | null = null;
   let activationId: string | null = null;
   for (const base of candidateBases(apiUrl)) {
@@ -84,6 +95,22 @@ export async function POST(request: Request) {
 
   if (!phoneNumber || !activationId) {
     return Response.json({ ok: false, message: "Nomor tidak tersedia saat ini. Coba lagi sebentar lagi." });
+  }
+
+  // Best-effort cost-drift check: compare VAK-SMS's real balance drop against
+  // our cached supplier_price (a catalog-import snapshot, not live pricing).
+  // Not exact if another purchase hits the same shared supplier account at
+  // the same moment, but it catches a stale catalog price — where the real
+  // supplier cost has risen since the last import — before it quietly
+  // erodes margin on every sale of that tier.
+  const balanceAfter = await getVakSmsBalance(apiUrl, apiKey);
+  if (balanceBefore !== null && balanceAfter !== null) {
+    const actualCost = balanceBefore - balanceAfter;
+    if (actualCost > tier.supplier_price * 1.15 + 0.005) {
+      console.error(
+        `purchase_number: supplier cost drift for ${serviceId}/${countryCode} — cached supplier_price=${tier.supplier_price}, actual balance drop=${actualCost.toFixed(4)}. Catalog is likely stale, re-import pricing.`,
+      );
+    }
   }
 
   const orderId = `ORD-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
