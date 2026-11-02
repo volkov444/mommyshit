@@ -15,6 +15,10 @@ import type { PaymentMethod } from "@/lib/dashboard/types";
 const ICONS = { Bitcoin, Wallet } as const;
 const DEPOSIT_POLL_ATTEMPTS = 24;
 const DEPOSIT_POLL_INTERVAL_MS = 2500;
+// OxaPay rejects invoices below its own minimum (empirically between $0.05
+// and $0.1 — not documented, confirmed by testing their API directly).
+// $0.1 is the lowest value we found that succeeds.
+const MIN_TOPUP_AMOUNT = 0.1;
 
 export function TopUpView() {
   const { user, updateUser } = useUser();
@@ -109,6 +113,10 @@ export function TopUpView() {
 
   async function handleSubmit() {
     if (!amount || amount <= 0 || !methodId) return;
+    if (amount < MIN_TOPUP_AMOUNT) {
+      toast(`Nominal top up minimal ${formatCurrency(MIN_TOPUP_AMOUNT)}.`, "info");
+      return;
+    }
     setLoading(true);
     const result = await topUp(amount, methodId);
     if (result.ok) {
@@ -239,6 +247,7 @@ export function TopUpView() {
               type="button"
               onClick={handleSubmit}
               disabled={!amount || amount <= 0 || loading}
+              title={amount && amount > 0 && amount < MIN_TOPUP_AMOUNT ? `Nominal minimal ${formatCurrency(MIN_TOPUP_AMOUNT)}` : undefined}
               className="mt-6 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-8px_rgb(40_117_251/0.7)] transition-all hover:-translate-y-0.5 hover:bg-deep disabled:pointer-events-none disabled:opacity-50 disabled:translate-y-0"
             >
               {loading ? "Processing…" : "Continue to Payment"}

@@ -50,7 +50,15 @@ export async function POST(request: Request) {
     });
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.data?.track_id || !data?.data?.payment_url) {
-      const message = typeof data?.message === "string" ? data.message : "Gagal membuat invoice OxaPay.";
+      // OxaPay's top-level `message` is a generic catch-all ("There was an
+      // issue with the submitted data..."); `error.message` is the specific,
+      // actionable reason (e.g. amount below their minimum) — prefer it.
+      const message =
+        typeof data?.error?.message === "string"
+          ? data.error.message
+          : typeof data?.message === "string"
+            ? data.message
+            : "Gagal membuat invoice OxaPay.";
       return Response.json({ ok: false, message });
     }
     invoice = data.data;
