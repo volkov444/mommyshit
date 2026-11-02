@@ -11,7 +11,8 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Dashboard"
-      className="fixed inset-x-3 bottom-3 z-40 flex items-stretch justify-between rounded-2xl bg-white px-1.5 py-1.5 shadow-lift ring-1 ring-soft backdrop-blur-xl md:hidden"
+      className="fixed inset-x-3 z-40 flex items-stretch justify-between rounded-2xl bg-white px-1.5 py-1.5 shadow-lift ring-1 ring-soft backdrop-blur-xl md:hidden"
+      style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       {dashboardNav.map((item) => {
         const active = pathname === item.href;

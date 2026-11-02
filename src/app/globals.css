@@ -43,6 +43,18 @@ footer[id] {
   scroll-margin-top: 5rem;
 }
 
+/* iOS Safari auto-zooms the whole page on focus for any input/select/textarea
+   under 16px — several of ours use text-sm (14px) or smaller. Forcing 16px
+   on mobile viewports only (desktop keeps each form's own sizing) stops the
+   unwanted zoom without touching every input's className individually. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 ::selection {
   background: var(--color-primary);
   color: #fff;
