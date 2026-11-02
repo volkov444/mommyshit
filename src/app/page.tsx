@@ -4,12 +4,14 @@ import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
 import { Highlights } from "@/components/Highlights";
+import { HomeAuthRedirect } from "@/components/HomeAuthRedirect";
 import { Navbar } from "@/components/Navbar";
 import { Showcase } from "@/components/Showcase";
 
 export default function Home() {
   return (
     <>
+      <HomeAuthRedirect />
       <Navbar />
       <main>
         <Hero />
