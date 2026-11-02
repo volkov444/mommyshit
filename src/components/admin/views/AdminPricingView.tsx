@@ -164,7 +164,10 @@ export function AdminPricingView() {
                       </span>
                     </td>
                     <td className="py-3.5 text-navy/70">{formatNumber(c.serviceCount)}</td>
-                    <td className="py-3.5 font-semibold text-emerald-600">+{Math.round(c.avgMarkupPercent)}%</td>
+                    <td className={`py-3.5 font-semibold ${c.avgMarkupPercent < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                      {c.avgMarkupPercent >= 0 ? "+" : ""}
+                      {Math.round(c.avgMarkupPercent)}%
+                    </td>
                     <td className="py-3.5 text-navy/70">{formatNumber(c.totalStock)}</td>
                     <td className="py-3.5">
                       <AdminBadge status={c.active ? "active" : "inactive"} />
@@ -194,7 +197,11 @@ export function AdminPricingView() {
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-navy">{c.name}</p>
                     <p className="text-xs text-navy/50">
-                      {c.serviceCount} layanan · {formatNumber(c.totalStock)} stok · <span className="font-semibold text-emerald-600">+{Math.round(c.avgMarkupPercent)}% markup</span>
+                      {c.serviceCount} layanan · {formatNumber(c.totalStock)} stok ·{" "}
+                      <span className={`font-semibold ${c.avgMarkupPercent < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                        {c.avgMarkupPercent >= 0 ? "+" : ""}
+                        {Math.round(c.avgMarkupPercent)}% markup
+                      </span>
                     </p>
                   </div>
                   <AdminBadge status={c.active ? "active" : "inactive"} />

@@ -20,6 +20,28 @@ type PriceTierRow = {
 
 const PRICE_TIER_COLUMNS = "id, service_id, country_code, supplier_price, sell_price, stock, active, supplier_service_code";
 
+const PAGE_SIZE = 1000;
+
+// Supabase/PostgREST caps an unpaginated select() at 1000 rows. The catalog
+// has ~40k price_tiers rows, so every unpaginated query below used to
+// silently return just the first page — undercounting the admin summary
+// and, worse, making "Markup Massal" only ever touch the first 1000 rows it
+// happened to fetch instead of the whole catalog.
+async function fetchAllRows<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await fetchPage(from, from + PAGE_SIZE - 1);
+    if (error || !data) break;
+    all.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
+}
+
 function fromRow(row: PriceTierRow): AdminPriceTier {
   return {
     id: row.id,
@@ -47,9 +69,10 @@ function toRow(tier: Omit<AdminPriceTier, "id">): Omit<PriceTierRow, "id"> {
 
 export async function getPriceTiers(): Promise<AdminPriceTier[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase.from("price_tiers").select(PRICE_TIER_COLUMNS);
-  if (error || !data) return [];
-  return data.map(fromRow);
+  const rows = await fetchAllRows<PriceTierRow>((from, to) =>
+    supabase.from("price_tiers").select(PRICE_TIER_COLUMNS).range(from, to),
+  );
+  return rows.map(fromRow);
 }
 
 export async function getPriceTiersFor(serviceId: string, countryCode: string): Promise<AdminPriceTier[]> {
@@ -68,12 +91,10 @@ export async function getPriceTiersFor(serviceId: string, countryCode: string): 
 
 export async function getPriceTiersForCountry(countryCode: string): Promise<AdminPriceTier[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("price_tiers")
-    .select(PRICE_TIER_COLUMNS)
-    .eq("country_code", countryCode);
-  if (error || !data) return [];
-  return data.map(fromRow);
+  const rows = await fetchAllRows<PriceTierRow>((from, to) =>
+    supabase.from("price_tiers").select(PRICE_TIER_COLUMNS).eq("country_code", countryCode).range(from, to),
+  );
+  return rows.map(fromRow);
 }
 
 export function computeProfit(tier: Pick<AdminPriceTier, "supplierPrice" | "sellPrice">): number {
@@ -170,13 +191,10 @@ async function getPriceTiersForServicesCountries(entries: { serviceId: string; c
   const supabase = getSupabaseClient();
   const serviceIds = Array.from(new Set(entries.map((e) => e.serviceId)));
   const countryCodes = Array.from(new Set(entries.map((e) => e.countryCode)));
-  const { data, error } = await supabase
-    .from("price_tiers")
-    .select(PRICE_TIER_COLUMNS)
-    .in("service_id", serviceIds)
-    .in("country_code", countryCodes);
-  if (error || !data) return [];
-  return data.map(fromRow);
+  const rows = await fetchAllRows<PriceTierRow>((from, to) =>
+    supabase.from("price_tiers").select(PRICE_TIER_COLUMNS).in("service_id", serviceIds).in("country_code", countryCodes).range(from, to),
+  );
+  return rows.map(fromRow);
 }
 
 // Batched the same way bulkUpsertPriceTiers is: one upsert call per chunk
