@@ -202,6 +202,11 @@ async function getPriceTiersForServicesCountries(entries: { serviceId: string; c
 // countries" can mean thousands of tiers.
 const MARKUP_CHUNK_SIZE = 500;
 
+// Rounding a markup to the nearest cent zeroes out any tier whose supplier
+// price is a fraction of a cent (e.g. $0.001) — floor at 1 cent so a tier
+// with a real cost is never sold for less than Bluffy actually pays for it.
+const MIN_SELL_PRICE = 0.01;
+
 export async function applyMarkupToAll(percent: number, actorId: string, actorName: string, countryCode?: string): Promise<number> {
   const supabase = getSupabaseClient();
   const tiers = countryCode ? await getPriceTiersForCountry(countryCode) : await getPriceTiers();
@@ -211,7 +216,7 @@ export async function applyMarkupToAll(percent: number, actorId: string, actorNa
     service_id: t.serviceId,
     country_code: t.countryCode,
     supplier_price: t.supplierPrice,
-    sell_price: t.supplierPrice > 0 ? Math.round(t.supplierPrice * (1 + percent / 100) * 100) / 100 : 0,
+    sell_price: t.supplierPrice > 0 ? Math.max(MIN_SELL_PRICE, Math.round(t.supplierPrice * (1 + percent / 100) * 100) / 100) : 0,
     stock: t.stock,
     active: t.active,
     supplier_service_code: t.supplierServiceCode,

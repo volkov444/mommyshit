@@ -109,6 +109,12 @@ function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
 }
 
+// A markup that rounds to a fraction of a cent on a very cheap supplier
+// price (e.g. $0.001) would otherwise undercut the real supplier cost —
+// floor at 1 cent so a tier with a real cost is never sold for less than
+// Bluffy actually pays for it.
+const MIN_SELL_PRICE = 0.01;
+
 // Serializes the find-or-create-service / upsert-price-tiers step across
 // concurrent countries in handleImportAll's worker pool. Each step now
 // awaits several Supabase round-trips, so without this lock two workers can
@@ -277,7 +283,7 @@ export function AdminSupplierCatalogSheet({ open, onClose, supplier }: Props) {
       if (!service) continue;
       const supplierPrice = round4(parseNumber(row.price));
       const stock = Math.round(parseNumber(row.stock));
-      const sellPrice = supplierPrice > 0 ? round4(supplierPrice * 1.65) : 0;
+      const sellPrice = supplierPrice > 0 ? Math.max(MIN_SELL_PRICE, round4(supplierPrice * 1.65)) : 0;
       tierEntries.push({ serviceId: service.id, countryCode: country.code, supplierPrice, sellPrice, stock, active: true, supplierServiceCode: row.code ?? null });
     }
     const { created: createdTiers, updated: updatedTiers } = await bulkUpsertPriceTiers(tierEntries, actorId, actorName);
