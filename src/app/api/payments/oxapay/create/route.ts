@@ -9,7 +9,10 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 const API_BASE = "https://api.oxapay.com/v1";
 
 function siteOrigin(request: Request): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  // NEXT_PUBLIC_SITE_URL may be present but set to an empty string (e.g. a
+  // blank value copied from .env.local into Vercel's env vars) — `||` so an
+  // empty string still falls back, unlike `??` which only catches null/undefined.
+  return process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
 }
 
 export async function POST(request: Request) {
