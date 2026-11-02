@@ -31,15 +31,20 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, message: "Permintaan tidak valid." });
   }
 
-  const { data: order } = await admin.from("orders").select("user_id, supplier_order_id, created_at").eq("id", orderId).maybeSingle();
+  const { data: order } = await admin.from("orders").select("user_id, supplier_order_id, created_at, otp").eq("id", orderId).maybeSingle();
   if (!order || order.user_id !== userData.user.id) {
     return Response.json({ ok: false, message: "Pesanan tidak ditemukan." });
   }
 
-  const elapsedMs = Date.now() - new Date(order.created_at).getTime();
-  if (elapsedMs < CANCEL_COOLDOWN_MS) {
-    const remainingSec = Math.ceil((CANCEL_COOLDOWN_MS - elapsedMs) / 1000);
-    return Response.json({ ok: false, message: `Tunggu ${remainingSec} detik lagi sebelum membatalkan pesanan ini.` });
+  // The cooldown exists to block cancel-and-retry spam against the supplier
+  // — once a code has already been delivered there's nothing left to spam,
+  // so an order with an otp can be marked done immediately.
+  if (!order.otp) {
+    const elapsedMs = Date.now() - new Date(order.created_at).getTime();
+    if (elapsedMs < CANCEL_COOLDOWN_MS) {
+      const remainingSec = Math.ceil((CANCEL_COOLDOWN_MS - elapsedMs) / 1000);
+      return Response.json({ ok: false, message: `Tunggu ${remainingSec} detik lagi sebelum membatalkan pesanan ini.` });
+    }
   }
 
   const apiKey = process.env.VAKSMS_API_KEY;

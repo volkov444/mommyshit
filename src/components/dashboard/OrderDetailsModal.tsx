@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import { Badge } from "./Badge";
 import { Flag } from "./Flag";
 import { formatDateTime, formatCurrency } from "@/lib/format";
@@ -11,6 +12,34 @@ type Props = {
   order: Order | null;
   onClose: () => void;
 };
+
+function OtpCell({ otp }: { otp: string | null }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!otp) return <span className="font-mono">Not received yet</span>;
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(otp!);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable — nothing to show, the OTP is still on screen to copy manually
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title="Klik untuk menyalin kode OTP"
+      className="inline-flex items-center gap-1.5 font-mono text-emerald-600 transition-opacity hover:opacity-75"
+    >
+      {otp}
+      {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={13} className="text-emerald-600/60" />}
+    </button>
+  );
+}
 
 const ROWS: Array<{ label: string; render: (o: Order) => React.ReactNode }> = [
   { label: "Order ID", render: (o) => <span className="font-mono">{o.id}</span> },
@@ -26,7 +55,7 @@ const ROWS: Array<{ label: string; render: (o: Order) => React.ReactNode }> = [
   },
   { label: "Phone Number", render: (o) => <span className="font-mono">{o.phoneNumber}</span> },
   { label: "Price", render: (o) => formatCurrency(o.price) },
-  { label: "OTP Code", render: (o) => <span className="font-mono">{o.otp ?? "Not received yet"}</span> },
+  { label: "OTP Code", render: (o) => <OtpCell otp={o.otp} /> },
   { label: "Status", render: (o) => <Badge status={o.status} /> },
   { label: "Created At", render: (o) => formatDateTime(o.createdAt) },
 ];

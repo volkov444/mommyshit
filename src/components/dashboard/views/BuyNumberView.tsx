@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Clock, Copy, Phone, RefreshCw, XCircle } from "lucide-react";
+import { Check, CheckCircle2, Clock, Copy, Phone, RefreshCw, XCircle } from "lucide-react";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Badge } from "@/components/dashboard/Badge";
 import { Flag } from "@/components/dashboard/Flag";
@@ -63,6 +63,7 @@ export function BuyNumberView() {
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [copiedOtpOrderId, setCopiedOtpOrderId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const activeNumbersRef = useRef<HTMLDivElement>(null);
   const autoExpiredRef = useRef<Set<string>>(new Set());
@@ -159,14 +160,17 @@ export function BuyNumberView() {
     toast(result.ok ? "SMS received!" : result.message, result.ok ? "success" : "info");
   }
 
-  async function handleCancel(orderId: string) {
+  async function handleCancel(orderId: string, otpAlreadyReceived: boolean) {
     setBusyOrderId(orderId);
     const result = await cancelOrder(orderId);
     setBusyOrderId(null);
     if (result.ok) {
       setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
       if (result.newBalance !== undefined) updateUser({ balance: result.newBalance });
-      toast(result.newBalance !== undefined ? "Order cancelled — balance refunded." : "Order cancelled.", "success");
+      toast(
+        otpAlreadyReceived ? "Order marked as completed." : result.newBalance !== undefined ? "Order cancelled — balance refunded." : "Order cancelled.",
+        "success",
+      );
     } else {
       toast(result.message, "info");
     }
@@ -179,6 +183,17 @@ export function BuyNumberView() {
       setTimeout(() => setCopiedOrderId((id) => (id === orderId ? null : id)), 1500);
     } catch {
       toast("Gagal menyalin nomor.", "error");
+    }
+  }
+
+  async function handleCopyOtp(orderId: string, otp: string) {
+    try {
+      await navigator.clipboard.writeText(otp);
+      setCopiedOtpOrderId(orderId);
+      toast("Kode OTP disalin.", "success");
+      setTimeout(() => setCopiedOtpOrderId((id) => (id === orderId ? null : id)), 1500);
+    } catch {
+      toast("Gagal menyalin kode OTP.", "error");
     }
   }
 
@@ -306,9 +321,19 @@ export function BuyNumberView() {
 
                     <div className="mt-3 rounded-xl border border-dashed border-soft px-4 py-3">
                       <p className="text-xs font-bold uppercase tracking-wider text-navy/40">SMS Code</p>
-                      <p className="mt-1 font-mono text-lg font-bold text-navy">
-                        {o.otp ?? "Waiting for SMS…"}
-                      </p>
+                      {o.otp ? (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyOtp(o.id, o.otp!)}
+                          title="Klik untuk menyalin kode OTP"
+                          className="mt-1 flex items-center gap-2 font-mono text-lg font-bold text-emerald-600 transition-opacity hover:opacity-75"
+                        >
+                          {o.otp}
+                          {copiedOtpOrderId === o.id ? <Check size={16} className="text-emerald-600" /> : <Copy size={14} className="text-emerald-600/60" />}
+                        </button>
+                      ) : (
+                        <p className="mt-1 font-mono text-lg font-bold text-navy">Waiting for SMS…</p>
+                      )}
                     </div>
 
                     <div className="mt-4 flex gap-2.5">
@@ -323,13 +348,16 @@ export function BuyNumberView() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleCancel(o.id)}
-                        disabled={busyOrderId === o.id || cancelRemaining > 0}
-                        title={cancelRemaining > 0 ? "Tunggu sebentar sebelum membatalkan, untuk mencegah spam." : undefined}
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-red-500 ring-1 ring-soft transition-colors hover:bg-red-50 disabled:opacity-60"
+                        onClick={() => handleCancel(o.id, Boolean(o.otp))}
+                        disabled={busyOrderId === o.id || (cancelRemaining > 0 && !o.otp)}
+                        title={cancelRemaining > 0 && !o.otp ? "Tunggu sebentar sebelum membatalkan, untuk mencegah spam." : undefined}
+                        className={cn(
+                          "inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-bold ring-1 ring-soft transition-colors disabled:opacity-60",
+                          o.otp ? "text-emerald-600 hover:bg-emerald-50" : "text-red-500 hover:bg-red-50",
+                        )}
                       >
-                        <XCircle size={15} />
-                        {cancelRemaining > 0 ? `Cancel in ${formatCooldown(cancelRemaining)}` : "Cancel Order"}
+                        {o.otp ? <CheckCircle2 size={15} /> : <XCircle size={15} />}
+                        {o.otp ? "Selesai" : cancelRemaining > 0 ? `Cancel in ${formatCooldown(cancelRemaining)}` : "Cancel Order"}
                       </button>
                     </div>
                   </div>
